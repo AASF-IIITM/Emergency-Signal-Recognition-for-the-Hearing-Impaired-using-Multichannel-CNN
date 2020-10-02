@@ -5,6 +5,8 @@ import csv
 import ast
 import os
 import os.path
+import argparse
+
 #Class definitions
 
 em_class = { '/m/03j1ly':'Emergency vehicle',
@@ -52,111 +54,132 @@ non_em_class = {'/m/07pbtc8':'Walk, footsteps',
                     
 }
 
-##### Set the relevant paths #####
 
-# Specify paths where to save the downloaded files
-# and the paths wher to save the extracted audio files
+def prepare_data(args):
+    '''
+    Prepares data in the 2 created sub-folders, 'emergency' and 'nonEmergency'
+    '''
+    base_download_path = str(args.download_dir)
 
-em_download_path = '/home/swarup03/Study_Material/emergency_data/emergency/'
-nonem_download_path = '/home/swarup03/Study_Material/emergency_data/nonEmergency/'
+    em_download_path = os.path.join(base_download_path, 'emergency')
+    nonem_download_path = os.path.join(base_download_path, 'nonEmergency')
 
-em_files_path = '/home/swarup03/Study_Material/emergency/'
-nonem_files_path = '/home/swarup03/Study_Material/nonEmergency/'
+    base_save_path = str(args.save_dir)
 
-##################################
-os.chdir('/home/swarup03/Study_Material/emergency_data')
+    em_files_path = os.path.join(base_save_path, 'emergency')
+    nonem_files_path = os.path.join(base_save_path, 'nonEmergency')
 
-# mention the name of the .csv file
-with open('eval_segments.csv') as csvfile:   # Also use other csv audioset files too extract all the data available in these categories
-    readCSV = csv.reader(csvfile,delimiter=',')
-    count=0
-    em_c=0
-    non_em_c=0
-    
-    for row in readCSV:
-        if(count<3):
-            count=count+1;
-        else:
-            v_id = row[0]
-            #v_start = ast.literal_eval(row[1])
-            #v_end = ast.literal_eval(row[2])
-            v_start = float(row[1])
-            v_end  = float(row[2])
-            labels_list = row[3:]
-            
-            labels_id = []
-            for labels in labels_list:
-                if labels == '':
-                    break
-                else:
-                    labels = labels.replace('\"','')
-                    labels = labels.strip()
-                    labels_id.append(labels)
-            
-            v_class = []
-            for labels in labels_id:
-                v_class.extend(labels.split(","))
+    ##################################
+    os.chdir(base_download_path)
 
-            flg1=0
-            flg2=0
-            
-            ##Excluding videos present in both EM and non-EM
-            if(set(v_class)&set(em_class.keys())!=set([])):
-                flg1=1
-            if(set(v_class)&set(non_em_class.keys())!=set([])):
-                flg2=1
-
-            if flg1==1 and flg2==1:
-                continue;
-            elif flg1==1:
-                print (v_id,v_start,v_end,'em')
-                ydl_opts = {
-                        'format': 'bestaudio/best',
-                    'ignoreerrors':'True',
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'wav',
-                            'preferredquality': '192',
-                        }],
-                        'outtmpl':'emergency/%(id)s.%(ext)s',    
-                }
-
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download(['http://www.youtube.com/watch?v='+row[0]])
-
-                input_file = em_download_path+v_id+'.wav'
-                print(input_file)
-                # break
-                if(os.path.exists(input_file)):
-                    print ('#############################################')
-                    em_c = em_c +1
-                    output_file = em_files_path+str(em_c)+'.wav'
-                    print (output_file)
-                    ffmpeg_extract_subclip(input_file,v_start,v_end,targetname=output_file)
-                    os.remove(input_file)
-                    
-            elif flg2==1:
-                print (v_id,v_start,v_end,'Non-em')
-                ydl_opts = {
-                        'format': 'bestaudio/best',
-                    'ignoreerrors':'True',
-                        'postprocessors': [{
-                            'key': 'FFmpegExtractAudio',
-                            'preferredcodec': 'wav',
-                            'preferredquality': '192',
-                        }],
-                        'outtmpl':'nonEmergency/%(id)s.%(ext)s',    
-                }
-
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                        ydl.download(['http://www.youtube.com/watch?v='+row[0]])
+    # mention the name of the .csv file
+    with open(args.csv_filename) as csvfile:   # Also use other csv audioset files too extract all the data available in these categories
+        readCSV = csv.reader(csvfile,delimiter=',')
+        count=0
+        em_c=0
+        non_em_c=0
+        
+        for row in readCSV:
+            if(count<3):
+                count=count+1
+            else:
+                v_id = row[0]
+                #v_start = ast.literal_eval(row[1])
+                #v_end = ast.literal_eval(row[2])
+                v_start = float(row[1])
+                v_end  = float(row[2])
+                labels_list = row[3:]
                 
-                input_file = nonem_download_path+v_id+'.wav'
-                 
-                if(os.path.exists(input_file)):
-                    print ('#############################################')
-                    non_em_c = non_em_c+1
-                    output_file = nonem_files_path+str(non_em_c)+'.wav'
-                    print (output_file)
-                    ffmpeg_extract_subclip(input_file,v_start,v_end,targetname=output_file) 
-                    os.remove(input_file)
+                labels_id = []
+                for labels in labels_list:
+                    if labels == '':
+                        break
+                    else:
+                        labels = labels.replace('\"','')
+                        labels = labels.strip()
+                        labels_id.append(labels)
+                
+                v_class = []
+                for labels in labels_id:
+                    v_class.extend(labels.split(","))
+
+                flg1=0
+                flg2=0
+                
+                ##Excluding videos present in both EM and non-EM
+                if(set(v_class)&set(em_class.keys())!=set([])):
+                    flg1=1
+                if(set(v_class)&set(non_em_class.keys())!=set([])):
+                    flg2=1
+
+                if flg1==1 and flg2==1:
+                    continue
+
+                elif flg1==1:
+                    print (v_id,v_start,v_end,'em')
+                    ydl_opts = {
+                            'format': 'bestaudio/best',
+                        'ignoreerrors':'True',
+                            'postprocessors': [{
+                                'key': 'FFmpegExtractAudio',
+                                'preferredcodec': 'wav',
+                                'preferredquality': '192',
+                            }],
+                            'outtmpl':'emergency/%(id)s.%(ext)s',    
+                    }
+
+                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download(['http://www.youtube.com/watch?v='+row[0]])
+
+                    input_file = em_download_path+v_id+'.wav'
+                    print(input_file)
+                    # break
+                    if(os.path.exists(input_file)):
+                        print ('#############################################')
+                        em_c = em_c +1
+                        output_file = os.path.join(em_files_path, str(em_c)+'.wav')
+                        print (output_file)
+                        ffmpeg_extract_subclip(input_file,v_start,v_end,targetname=output_file)
+                        os.remove(input_file)
+                        
+                elif flg2==1:
+                    print (v_id,v_start,v_end,'Non-em')
+                    ydl_opts = {
+                            'format': 'bestaudio/best',
+                        'ignoreerrors':'True',
+                            'postprocessors': [{
+                                'key': 'FFmpegExtractAudio',
+                                'preferredcodec': 'wav',
+                                'preferredquality': '192',
+                            }],
+                            'outtmpl':'nonEmergency/%(id)s.%(ext)s',    
+                    }
+
+                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                            ydl.download(['http://www.youtube.com/watch?v='+row[0]])
+                    
+                    input_file = nonem_download_path+v_id+'.wav'
+                    
+                    if(os.path.exists(input_file)):
+                        print ('#############################################')
+                        non_em_c = non_em_c+1
+                        output_file = os.path.join(nonem_files_path, str(non_em_c)+'.wav')
+                        print (output_file)
+                        ffmpeg_extract_subclip(input_file,v_start,v_end,targetname=output_file) 
+                        os.remove(input_file)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_help
+    parser.add_argument('--download_dir', help='Path to save the downloaded files', default=None)
+    parser.add_argument('--save_dir', help='Path to save the extracted audio files', default=None)
+    parser.add_argument('--csv_filename', help='Name of the AudioSet csv file (eval_segments.csv/balanced_train_segments.csv)', default=None)
+
+    args = parser.parse_args()
+
+    # Check needed, default values are None
+    if args.download_dir is None or args.save_dir is None or args.csv_filename is None:
+        raise ValueError("Need to specify Download and Save directories")
+
+    prepare_data(args)
