@@ -43,7 +43,7 @@ from flask import jsonify
 from werkzeug.utils import secure_filename
 
 K.clear_session()
-
+#[TODO]:Create an upload folder and give it a permission of 755.
 UPLOAD_FOLDER = 'uploads/'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif','wav','mp4','mp3'])
 
